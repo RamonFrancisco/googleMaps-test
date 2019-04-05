@@ -5,11 +5,23 @@
 </head>
 
 <body>
+	<div class="container">
+		<div class="options-box">
+			<h1>Find your new NYC HOME</h1>
+			<div>
+				<input type="button" id="show-listings" value="Show listings">
+				<input type="button" id="hide-listings" value="Hide listings">
+				<hr>
+				<span class="text">Draw s shape to search within it for homes!</span>
+				<input type="button" value="Drawing Tools" id="toggle-drawing">
+			</div>
+		</div>
+	</div>
 	<div id="map"></div>
 	
 	<script src="./scripts/main.js"></script>
 	<script async defer 
-		src="//maps.googleapis.com/maps/api/js?key=AIzaSyC3YLiVZd1yNE6wtL0s526RC-tMn5geMrY&v=3&callback=initMap" ></script>
+		src="//maps.googleapis.com/maps/api/js?libraries=drawing,geometry&key=AIzaSyC3YLiVZd1yNE6wtL0s526RC-tMn5geMrY&v=3&callback=initMap" ></script>
 </body>
 
 </html>
