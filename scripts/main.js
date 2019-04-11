@@ -3,8 +3,10 @@
 let map;
 const $showListings = document.querySelector('#show-listings');
 const $hideListings = document.querySelector('#hide-listings');
+const $toggleDrawing = document.querySelector('#toggle-drawing');
 const $map = document.querySelector('#map');
 const markers = [];
+let polygon = null;
 
 const style = [
 	{ featureType: 'transit.station.bus', elementType: 'geometry', stylers: [{ color: '#000000' }]},
@@ -24,6 +26,16 @@ function initMap() {
 	];
 	const infoWindow = new google.maps.InfoWindow();
 	
+	const drawing = new google.maps.drawing.DrawingManager({
+		drawingMode: google.maps.drawing.OverlayType.POLYGON,
+		drawingControl: true,
+		drawingControlOptions: {
+			position: google.maps.ControlPosition.TOP_LEFT,
+			drawingModes: [
+				google.maps.drawing.OverlayType.POLYGON
+			]
+		}
+	})
 
 	map = new google.maps.Map($map , {
 		center: { lat: 40.7413549, lng: -73.9980244 },
@@ -56,6 +68,27 @@ function initMap() {
 		marker.addListener('mouseout', function () {
 			this.setIcon(defaultIcon);
 		})
+	})
+
+	$showListings.addEventListener('click', showListings);
+	$hideListings.addEventListener('click', hideListings);
+	$toggleDrawing.addEventListener('click', () => {
+		toggleDrawing(drawing);
+	});
+
+	drawing.addListener('overlaycomplete', (event) => {
+		if (polygon) {
+			polygon.setMap(null);
+			hideListings();
+		}
+
+		drawing.setDrawingMode(null);
+
+		polygon = event.overlay;
+		polygon.setEditable(true);
+		searchWithinPolygon();
+		polygon.getPath().addListener('set-at', searchWithinPolygon);
+		polygon.getPath().addListener('insert-at', searchWithinPolygon);
 	})
 }
 
@@ -109,17 +142,6 @@ const hideListings = () => {
 	})
 }
 
-const drawing = new google.maps.drawing,DrawingManager({
-	drawingMode: google.maps.drawing.OverlayType.POLYGON,
-	drawingControl: true,
-	drawingControlOptions: {
-		position: google.maps.ControlPosition.TOP_LEFT,
-		drawingModes: [
-			google.maps.drawing.OverlayType.POLYGON
-		]
-	}
-})
-
 const makeMarkerIcon = (markerColor) => {
 	const markerImage = new google.maps.MarkerImage(
 		'http://chart.googleapis.com/chart?chst=d_map_spin&chld=1.15|0|' + markerColor +
@@ -131,5 +153,23 @@ const makeMarkerIcon = (markerColor) => {
 	return markerImage;
 }
 
-$showListings.addEventListener('click', showListings);
-$hideListings.addEventListener('click', hideListings);
+const toggleDrawing = ( drawingManager ) => {
+	if ( drawingManager.map ) {
+		drawingManager.setMap(null)
+		if ( polygon ) {
+			polygon.setMap(null)
+		}
+	} else {
+		drawingManager.setMap(map);
+	}
+}
+
+const searchWithinPolygon = () => {
+	for (let i = 0; i < markers.length; i++) {
+		if ( google.maps.geometry.poly.containsLocation(markers[i].position, polygon)) {
+			markers[i].setMap(map);
+		} else {
+			markers[i].setMap(null);
+		}
+	}
+}
