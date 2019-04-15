@@ -1,10 +1,13 @@
 'use strict';
 
 let map;
-const $showListings = document.querySelector('#show-listings');
-const $hideListings = document.querySelector('#hide-listings');
-const $toggleDrawing = document.querySelector('#toggle-drawing');
-const $map = document.querySelector('#map');
+const 	$showListings = document.querySelector('#show-listings'),
+		$hideListings = document.querySelector('#hide-listings'),
+		$toggleDrawing = document.querySelector('#toggle-drawing'),
+		$map = document.querySelector('#map'),
+		$zoom = document.querySelector('#zoom-to-area'),
+		$searchWithinTime = document.querySelector('#search-within-time');
+
 const markers = [];
 let polygon = null;
 
@@ -25,6 +28,7 @@ function initMap() {
 		{ title: 'Chinatown Homey Space', location: { lat: 40.7180628, lng: -73.9961237 } }
 	];
 	const infoWindow = new google.maps.InfoWindow();
+	const geocoder = new google.maps.Geocoder();
 	
 	const drawing = new google.maps.drawing.DrawingManager({
 		drawingMode: google.maps.drawing.OverlayType.POLYGON,
@@ -89,6 +93,18 @@ function initMap() {
 		searchWithinPolygon();
 		polygon.getPath().addListener('set-at', searchWithinPolygon);
 		polygon.getPath().addListener('insert-at', searchWithinPolygon);
+		const area = google.maps.geometry.spherical.computeArea(polygon.getPath())
+		window.alert(area);
+	});
+
+	drawing.addListener('computeArea');
+
+	$zoom.addEventListener('click', () => {
+		geocoderAddress(geocoder, map);
+	})
+
+	$searchWithinTime.addEventListener('click', () => {
+		searchWithinTime();
 	})
 }
 
@@ -170,6 +186,94 @@ const searchWithinPolygon = () => {
 			markers[i].setMap(map);
 		} else {
 			markers[i].setMap(null);
+		}
+	}
+}
+
+const geocoderAddress = (geocoder, resultMaps) => {
+	const address = document.querySelector('#zoom-to-area-text').value;
+	
+	geocoder.geocode(
+		{ address: address }, function (results, status) {
+			if (status === google.maps.GeocoderStatus.OK) {
+				resultMaps.setCenter(results[0].geometry.location)
+				console.log('results[0]', results[0])
+				map.setZoom(15);
+				document.getElementById('firstComponent').innerHTML = results[0].formatted_address; 
+				document.getElementById('secondComponent').innerHTML = results[0].geometry.location;
+			} else {
+				window.alert('We could not find that location - try entering a more specific place');
+			}
+		}
+
+	)
+}
+
+const searchWithinTime = () => {
+
+	const distanceMatrixService = new google.maps.DistanceMatrixService; 
+	const address = document.querySelector('#search-within-time-text').value;
+
+	if( address === '' ) {
+		window.alert('You must enter an address.');
+	} else {
+		hideListings();
+
+		const origins = [];
+		for (let i = 0; i < markers.length; i++) {
+			origins[i] = markers[i].position;	
+		}
+		const destination = address;
+		const mode = document.querySelector('#mode').value
+
+		distanceMatrixService.getDistanceMatrix({
+			origins: origins,
+			destinations: [destination],
+			travelMode: google.maps.TravelMode[mode],
+			unitSystem: google.maps.UnitSystem.IMPERIAL
+		}, function (response, status) {
+			if( status !== google.maps.DistanceMatrixStatus.OK) {
+				window.alert('Error was: ' + status);
+			} else {
+				displayMarkersWithinTime(response);
+			}
+		})
+	}
+}
+
+const displayMarkersWithinTime = response => {
+	const maxDuration = document.querySelector('#max-duration').value;
+	const origins = response.originAddresses;
+	const destinations = response.destinationAddresses;
+
+	let atLeastOne = false;
+
+	for (let i = 0; i < origins.length; i++) {
+		const results = response.rows[i].elements;
+		for (let j = 0; j < results.length; j++) {
+			const element = results[j];
+			if(element.status === 'OK') {
+
+				const distanceText = element.distance.text;
+				const duration = element.duration.value / 60;
+				const durationText = element.duration.text;
+
+				if(duration <= maxDuration) {
+					markers[i].setMap(map);
+					atLeastOne = true;
+
+					const infoWindow = new google.maps.InfoWindow({
+						content: `${durationText} away, ${distanceText}` 
+					});
+					infoWindow.open(map, markers[i]);
+
+					markers[i].infoWindow = infoWindow;
+
+					google.maps.event.addListener(markers[i], 'click', function() {
+						this.infoWindow.close();
+					})
+				}
+			}
 		}
 	}
 }

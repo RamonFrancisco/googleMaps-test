@@ -57,6 +57,10 @@ hr {
 	height: 200px;
 }
 
+#search-within-time-text {
+	width: 84%;
+}
+
 .text {
 	font-size: 12px;
 }
@@ -65,4 +69,26 @@ hr {
 	width: 27%;
 	position: relative;
 	margin-left: 10px;
+}
+
+#zoom-to-area-text {
+	position: relative;
+	width: 70%;
+} 
+
+#zoom-to-area {
+	width: 24%;
+}
+
+#floating-panel {
+	position: relative;
+	z-index: 5;
+	height:90%;
+	background-color: #fff;
+	padding: 5px;
+	border: 1px solid #999;
+	text-align: center;
+	font-family: 'Roboto','sans-serif';
+	line-height: 30px;
+	padding-left: 10px;
 }
